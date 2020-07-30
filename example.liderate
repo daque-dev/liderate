@@ -1,0 +1,45 @@
+@[ section .id app-module .title The app module
+  @[ define .module app
+    This module contains the main function.  Which is the execution entry point to our program.
+  @]
+
+  As it is typical, in our main function we will first be initializing every system we will
+  need in the course of execution of our game, then we will be running the main loop, and when
+  we are done, we destruct everything we constructed in the initialization phase.
+
+  @[ portion .module app
+     int main()
+     {
+        @[] ref .id init-phase
+        @[] ref .id main-loop
+        @[] ref .id deinit-phase
+        return 0;
+     }
+  @]
+  @[ define .id init-phase .title Initialize subsystems
+     Calls the initialization code for every subsystem we currently need.
+  @]
+  @[ define .id main-loop  .title Game's main loop
+     The loop in which we will be processing relevant user events, calculating
+     game's state and rendering it.
+  @]
+  @[ define .id deinit-phase .title Destruction phase
+     Destructs everything we constructed in the initialization phase.
+  @]
+
+  @[ define .module gfx.init
+  The graphics module
+  @]
+
+  @[ portion .module gfx.init
+    int init()
+    {
+        import std.stdio;
+        writeln("Initializing Gfx module");
+    }
+  @]
+  @[ portion .id /app-module/init-phase
+     import gfx.init: initGfx = init;
+     initGfx();
+  @]
+@]

@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/liderate
+liderate.so
+liderate.dylib
+liderate.dll
+liderate.a
+liderate.lib
+liderate-test-*
+*.exe
+*.o
+*.obj
+*.lst

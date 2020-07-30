@@ -1,0 +1,13 @@
+{
+	"authors": [
+		"quevangel"
+	],
+	"copyright": " ",
+	"dependencies": {
+		"libdparse": "~>0.15.3"
+	},
+	"description": "A literate programming tool for the D programming language.",
+	"license": "GPLv3",
+	"name": "liderate",
+	"stringImportPaths": ["./"]
+}

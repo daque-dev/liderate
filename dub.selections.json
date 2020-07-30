@@ -1,0 +1,7 @@
+{
+	"fileVersion": 1,
+	"versions": {
+		"libdparse": "0.15.3",
+		"stdx-allocator": "2.77.5"
+	}
+}

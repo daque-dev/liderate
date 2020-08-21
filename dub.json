@@ -8,6 +8,5 @@
 	},
 	"description": "A literate programming tool for the D programming language.",
 	"license": "GPLv3",
-	"name": "liderate",
-	"stringImportPaths": ["./"]
+	"name": "liderate"
 }

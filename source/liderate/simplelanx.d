@@ -1,0 +1,306 @@
+module liderate.simplelanx;
+
+import std.conv;
+import std.stdio;
+
+// Parser configuration
+const spacesPerTab = int(4);
+//
+
+
+public Node parse(string inputString)
+{
+  import std.array: split;
+  import std.container: DList;
+
+  auto rootNode = new Node(-1);
+  rootNode.objects = [new TextObject("", "section", null, false)];
+  auto parentNodes = new DList!(Node)(rootNode);
+  auto prevWasEmptyLine = false;
+  foreach(line; inputString.split("\n"))
+    {
+      auto lineNode = parseLine(line);
+      if (lineNode is emptyLineNode) {prevWasEmptyLine = true; continue;}
+      assert(lineNode !is null);
+      while (!parentNodes.empty && parentNodes.back.indentation >= lineNode.indentation)
+        parentNodes.removeBack;
+      assert(!parentNodes.empty);
+      if (prevWasEmptyLine)
+        parentNodes.back.children ~= emptyLineNode;
+      parentNodes.back.children ~= lineNode;
+      parentNodes.insertBack([lineNode]);
+    }
+  return rootNode;
+}
+
+
+public class TextObject
+{
+  string id = null;
+  string name = null;
+  TextObject[] components = null;
+  bool isPlainText = true;
+
+  this(string id, string name, TextObject[] components, bool isPlainText)
+  {
+    this.id = id;
+    this.name = name;
+    this.components = components;
+    this.isPlainText = isPlainText;
+  }
+
+  override string toString()
+  {
+    if (isPlainText) return name;
+    string res = "\\" ~ name ~ "#" ~ id ~ "{";
+    foreach(component; components)
+      res ~= component.toString;
+    res ~= "}";
+    return res;
+  }
+
+  void globalizeReferences(string context)
+  {
+    if (name == "ref")
+      {
+        assert(components.length == 1 && components[0].isPlainText); // TODO: Throw an exception instead of failing completely.
+        auto refString = components[0].name;
+        if (refString[0] != '/')
+          components[0].name = context ~ components[0].name;
+        return;
+      }
+    foreach(component; components)
+      component.globalizeReferences(context);
+  }
+}
+
+public class Node
+{
+  int indentation;
+  TextObject[] objects;
+  this(int indentation)
+  {
+    this.indentation = indentation;
+    this.objects = objects;
+    this.children = null;
+  }
+  Node[] children;
+
+  override string toString()
+  {
+    import std.conv;
+    string res = null;
+    void dfsToString(Node node, int indent)
+    {
+      foreach(i; 0 .. indent) res ~= ' ';
+      res ~= text(node.objects) ~ '\n';
+      foreach(child; node.children)
+        {
+          dfsToString(child, indent + 1);
+        }
+    }
+    dfsToString(this, 0);
+    return res;
+  }
+}
+
+public Node emptyLineNode;
+
+static this()
+{
+  emptyLineNode = new Node(0);
+}
+
+private Node parseLine(string inputLine)
+{
+  import std.uni: isWhite;
+  int indentation(dchar c)
+  {
+    assert(c.isWhite);
+    switch(c)
+      {
+      case ' ':
+        return 1;
+      case '\t':
+        return spacesPerTab;
+      default:
+        assert(0, "unhandled white character in indentation calculation");
+      }
+  }
+
+  auto line = new Node(0);
+  while(inputLine.length > 0 && inputLine[0].isWhite)
+    {
+      line.indentation += indentation(inputLine[0]);
+      inputLine = inputLine[1 .. $];
+    }
+  if (inputLine.length == 0)
+    return emptyLineNode;
+  auto parser = TextObjectParser(inputLine);
+  line.objects = parser.parse;
+  return line;
+}
+
+struct TextObjectParser
+{
+private:
+  string _base;
+  string _toParse;
+  bool hasChar(size_t offset) {return offset < _toParse.length;}
+  char peekChar(size_t offset) {return _toParse[offset];}
+  bool hasCurr() {return hasChar(0);}
+  char currChar() {return peekChar(0);}
+  void popChar() {_toParse = _toParse[1 .. $];}
+public:
+  this(string base)
+  {
+    _base = base.dup;
+    _toParse = _base;
+  }
+  TextObject[] parse()
+  {
+    import std.array: appender;
+    auto res = appender!(TextObject[])();
+    for(auto to = nextTextObject;
+        to !is null;
+        to = nextTextObject)
+        res.put(to);
+    return res[];
+  }
+  TextObject nextTextObject(bool insideConstructor = false)
+  {
+    class SyntaxError: Throwable
+    {
+      this(string msg)
+      {
+        super(msg);
+      }
+    }
+    if (!hasCurr)
+      return null;
+    TextObject nextText()
+    {
+      auto text = new TextObject(null, null, null, true);
+      if (insideConstructor)
+        {
+          while (hasCurr && currChar != '}')
+            {
+              // handle escape sequence
+              if (currChar == '\\')
+                {
+                  if (hasChar(1))
+                    {
+                      switch(peekChar(1))
+                        {
+                        case '}':
+                        case '\\':
+                          // pop \
+                          popChar;
+                          assert(currChar == '}' || currChar == '\\');
+                          text.name ~= currChar;
+                          popChar;
+                          continue;
+                        default:
+                          return text;
+                        }
+                    }
+                  else
+                    {
+                      text.name ~= '\\';
+                      popChar;
+                      continue;
+                    }
+                }
+              text.name ~= currChar;
+              popChar;
+            }
+        }
+      else
+        {
+          while (hasCurr)
+            {
+              // handle escape sequence
+              if (currChar == '\\')
+                {
+                  if (hasChar(1))
+                    {
+                      switch(peekChar(1))
+                        {
+                        case '\\':
+                          // pop \
+                          popChar;
+                          assert(currChar == '\\');
+                          text.name ~= currChar;
+                          popChar;
+                          continue;
+                        default:
+                          return text;
+                        }
+                    }
+                  else
+                    {
+                      text.name ~= '\\';
+                      popChar;
+                      continue;
+                    }
+                }
+              text.name ~= currChar;
+              popChar;
+            }
+        }
+      return text;
+    }
+    TextObject nextComplex()
+    {
+      auto object = new TextObject(null, null, null, false);
+      assert(currChar == '\\' && hasChar(1) && peekChar(1) != '\\');
+      popChar;
+      if (!(hasCurr))
+        throw new SyntaxError("Text object without name");
+      while(hasCurr && currChar != '{' && currChar != '#')
+        {
+          object.name ~= currChar;
+          popChar;
+        }
+      assert(hasCurr);
+      if (currChar == '#')
+        {
+          popChar;
+          if (!(hasCurr))
+            throw new SyntaxError("Empty id");
+          assert(hasCurr); // empty id!
+          while (hasCurr && currChar != '{' && currChar != '#')
+            {
+              object.id ~= currChar;
+              popChar;
+            }
+        }
+      if (hasCurr && currChar == '#')
+        {
+          throw new SyntaxError("Multipe ids for a text object");
+        }
+      else if (!(hasCurr && currChar == '{'))
+        {
+          throw new SyntaxError("Text object without body");
+        }
+      assert(hasCurr && currChar == '{');
+      // pop {
+      popChar;
+      while(hasCurr && currChar != '}')
+        {
+          auto component = nextTextObject(true);
+          object.components ~= component;
+        }
+      assert(hasCurr && currChar == '}');
+      popChar;
+      return object;
+    }
+    if (currChar == '\\')
+      {
+        if (hasChar(1) && peekChar(1) == '\\')
+          return nextText;
+        return nextComplex;
+      }
+    return nextText;
+  }
+}

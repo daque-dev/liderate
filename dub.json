@@ -4,6 +4,7 @@
 	],
 	"copyright": " ",
 	"dependencies": {
+		"dxml": "~>0.4.3",
 		"libdparse": "~>0.15.3"
 	},
 	"description": "A literate programming tool for the D programming language.",

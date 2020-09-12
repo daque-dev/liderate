@@ -1,0 +1,20 @@
+\section#sec{My section}
+  this is a section about something very interesting
+  it shall interest you what it is about this section that is
+  so special
+
+  well, it may be difficult to explain.
+
+  Here, take an equation
+  \file-definition#myfile-html{myfile.html}
+    This is an explanation of the file
+    
+  \fragment-addition{\ref{my-file-html}}
+    <html>
+      <head>
+      </head>
+      <body>
+        \ref{html-body}
+      </body>
+    </html>
+  \fragment-definiton#html-body{

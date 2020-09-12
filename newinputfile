@@ -1,0 +1,124 @@
+\section#about{About the program}
+  \paragraph{}
+    This program reads a certain description of an undirected graph and
+    determines the number of connected components of it\.
+  \section#graph-description{About the description of the graph}
+    \paragraph{}
+      The graph bold{shall} be read from a file.  The file describes
+      the graph by way of specifying the number of nodes, the
+      number of edges and a description of what nodes
+      each edge connects.
+    \section#syntax{Syntax}
+      \paragraph{}
+        The input file consists only of a series of arbitrarily space-
+        separated integer constants written in plain ASCII, and
+        consequently, also readable as an UTF-8 plain text file.
+      \paragraph{}
+        The first two integers shall be the number of nodes (n), and the
+        number of edges (m), respectively.
+      \paragraph{}
+        Given this, the set of nodes  is assumed to be \math{{1, 2,... n}}, and
+        each node will be referred simply by its number.
+      \paragraph{}
+        Then comes math{m} pairs of integers "u" and "v" each giving the
+        existence of a bidirectional edge between nodes "u" and "v".
+  \section#interface{The command line interface}
+    \paragraph{}
+      As a binary, our program shall receive one and only one command line argument, and this will
+      be interpreted as the file name for the input file described \>{/about/graph-description/syntax}
+    \paragraph{}
+      If the input file doesn't comply with the #/about/graph-description/syntax our program will fail silently.
+
+\section#program{The program}
+  As this program will be considerably small, it will consist of a single source file
+  in which we will put all of our code.
+
+  \file#app{source/app.d}
+     The one and only sourcefile.  Will contain everything.
+
+  The structure of this file will be typical.
+
+  \addto{\>app}
+    void main()
+    {
+      \>{imports}
+      \>{global-vars}
+      return 0;
+    }
+
+  \fragment#imports{Import declarations}
+    In this fragment will be included the import declarations that we see
+    fit.
+  \fragment#global-vars{Global variable definitions}
+    In this fragment we will be creating and initializing global variables
+    as we require them.
+    \line{}
+    \eq{x^2 = 2 + 1}
+  \fragment#function-defs{Function definitions}
+    In this fragment we will be inserting our function definitions.
+  \line{}
+  As per the rules of the D programming language, the order in which we insert new fragments
+  into the three previous fragments won't affect the final result.
+  \section#main{The main function}
+    The main function will be the entry point to our program. This is the starting point of execution.
+    The structure of this function will be typical of a D program.
+    \addto{\>/program/function-defs}
+      void main (string[] args)
+      {
+        > local-vars
+        > main-process
+      }
+    \fragment#local-vars{Local variables definitions}
+      In this fragment we will be inserting the local variables we require.
+    \fragment#main-process{Main process #main-process}
+      In this fragment we will input how our main function does its processing.
+    \line{}
+    Where `args` is an array of strings that contains the arguments we received from the user.  The first argument is always the name of the binary,
+    the rest are given by the user.
+    * The process #process
+      + /program/main/main-process
+        > validate-args
+        > read-input
+        > compute-answer
+        > write-answer
+      = Commandline arguments validation #validate-args
+        As it is normal in a program with command-line interface, our
+        first job shall be to validate the arguments that we are given.
+      = Read the input #read-input
+        Given that we have a valid argument giving us the input file name.
+        We will try to open the given file and get it's data (ala Succ).
+        This fragment's job will imply verifying the existence and syntax of
+        the given file.
+      = Compute the answer #compute-answer
+        With the information about the graph we will now be ready to compute the
+        number of connected components of it.
+      = Write the answer #write-answer
+        Given the answer obtained in the previous fragment.  We will present it to
+        the user through stdout.
+
+      \paragraph{Commandline arguments validation}
+        To do this, it is enough to verify that we have been given one and only one user-defined commandline argument.
+        The first given argument in "args" is always the name of the binary, so we need to verify that the args array
+        is of size 2 exactly.
+        + /program/main/process/validate-args
+          if (args.length != 2)
+          {
+            import std.stdio: stderr;
+            stderr.writeln("Expected an only argument giving an input file");
+            return;
+          }
+        addto{>validate-args}
+          if (args.length != 2)
+          {
+            @>validate-args
+          }
+        Thus, if we find that we didn't receive the exact required number of arguments, we simply print a message into stderr and exit.
+        \%TODO It may be better to have a function that prints a help string.
+      .
+      Before reading the input we must know how we will represent in-memory the given graph.  It would seem intuitive to simply map
+      the representation that we know we have in the file (given #/about/graph-description/syntax ) and proceed from there, but for our purposes, it will
+      prove to be more convenient to represent it other way.
+      * Graph representation #graph
+        There are 3 standard ways of representing a graph, suppose we have $n$ nodes and $m$ edges:
+        \paragraph{Adjacency matrix representation}
+          In this representation we have an $n \times n$ matrix such that $a_{ij} = 1$ if $i$ and $j$ are connected directly by an edge and $a_{ij} = 0$ otherwise.

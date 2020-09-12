@@ -1,0 +1,16 @@
+<section title="About the program" id="about">
+  This program reads a certain description of an undirected graph and
+  determines the number of connected components of it.
+  <section title="About the description of the graph" id="graph-description">
+    The graph shall be read from a file.  The file describes
+    the graph by way of specifying the number of nodes, the
+    number of edges and a description of what nodes
+    each edge connects.
+    <section title="Syntax" id="syntax">
+      The input file consists only of a series of arbitrarily space-
+      separated integer constants written in plain ASCII, and
+      consequently, also readable as an UTF-8 plain text file.
+
+    </section>
+  </section>
+</section>

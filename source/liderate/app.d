@@ -2,35 +2,42 @@ module liderate.app;
 
 void main(string[] args)
 {
-  import liderate.simplelan;
+  import liderate.simplelanx;
+  import liderate.simplelanx_semantic;
   import std.stdio;
   import std.array;
-  import std.container;
-
-  auto file = File(args[1]);
-  Node tree = null;
-  SList!Node fragmentNodes = SList!Node();
-  parseString(tree, fragmentNodes, file.byLine.join("\n").idup);
-  file.close();
-
-  writeln(tree);
-  if (2 < args.length)
+  import std.utf;
+  auto parseResult = semanticParse(cast(string) stdin.byLine.join("\n"));
+  writeln(parseResult.root);
+  version(none)
     {
-      switch(args[2])
+      import liderate.simplelan: parseString, Node;
+      import std.stdio: File;
+      import std.array: join;
+      import std.container: SList;
+
+      auto file = File(args[1]);
+      Node tree = null;
+      SList!Node fragmentNodes = SList!Node();
+      parseString(tree, fragmentNodes, file.byLine.join("\n").idup);
+      file.close();
+
+      if (2 < args.length)
         {
-        case "tangle":
-          tangle(fragmentNodes);
-          break;
-        case "weave-markdown":
-          writeln("weaving markdown");
-          weaveMarkdown(tree, "weaved.md");
-          break;
-        case "weave-latex":
-          writeln("weaving latex");
-          weaveLatex(tree, "weaved.tex");
-          break;
-        default:
-          assert(0);
+          switch(args[2])
+            {
+            case "tangle":
+              tangle(fragmentNodes);
+              break;
+            case "weave-markdown":
+              weaveMarkdown(tree, "weaved.md");
+              break;
+            case "weave-latex":
+              weaveLatex(tree, "weaved.tex");
+              break;
+            default:
+              assert(0);
+            }
         }
     }
 }
@@ -343,6 +350,8 @@ void weaveLatex(Node tree, string fileName)
         break;
       case NodeType.fragmentAddition:
         outputFile.writeln("\\subparagraph{\\emph{\\textless ", fragmentLongName[node.value], " \\textgreater += }}");
+        outputFile.writeln("{");
+        outputFile.writeln("\\color{teal}");
         outputFile.writeln("\\begin{verbatim}");
         const minIndentation = node.children.map!(c => c.indentationLevel).fold!min;
         foreach(child; node.children)
@@ -355,6 +364,7 @@ void weaveLatex(Node tree, string fileName)
               outputFile.writeln(child.value);
           }
         outputFile.writeln("\\end{verbatim}");
+        outputFile.writeln("}");
         break;
       case NodeType.fragmentDefinition:
         outputFile.writeln("\\subparagraph{\\emph{Code Fragment: ", node.value, "}}");
@@ -398,6 +408,7 @@ void weaveLatex(Node tree, string fileName)
 \title{Program}
 \renewcommand{\familydefault}{\sfdefault}
 \usepackage{hyperref}
+\usepackage[dvipsnames]{xcolor}
 \hypersetup{
   colorlinks = true,
   linkcolor = blue,

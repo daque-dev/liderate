@@ -1,0 +1,178 @@
+module simplelanx_semantic;
+
+public struct SemanticParseResult
+{
+  Node root;
+  string[TextObject] globalId;
+  TextObject[string] textObjectById;
+  string[][TextObject] referencedBy;
+}
+
+public ParseResult semanticParse(string inputString)
+{
+  ParseResult result;
+  result.root = parse(inputString);
+
+  class SemanticError : Throwable
+  {
+    this(string msg)
+    {
+      import std.conv;
+      super(text("Semantic error: ", msg));
+    }
+  }
+
+  void globalizeReferences(Node currentNode, string context)
+  {
+    bool thisIsSection = nodeIsSection(currentNode);
+    if (thisIsSection) context ~= currentNode.objects[0].id ~ "/";
+
+    foreach(textObject; currentNode.objects)
+      textObject.globalizeReferences(context);
+
+    foreach(childNode; currentNode.children)
+      globalizeReferences(childNode, context);
+  }
+  ulong anonIdCounter = 0;
+  void fillGlobalId(Node currentNode, string context)
+  {
+    void fillGlobalIdTextObject(TextObject to, string context)
+    {
+      if (to.isPlainText) return;
+      if (to.id is null)
+        {
+          string id = text("__anonId", anonIdCounter++);
+
+          result.globalId[to] = id;
+          result.textObjectById[id] = to;
+        }
+      else
+        {
+          string id = context ~ to.id;
+          assert(to !in result.globalId); // TODO throw exception
+          result.globalId[to] = id;
+          assert(id !in result.textObjectById); // TODO throw exception instead of failure
+          result.textObjectById[id] = to;
+        }
+      foreach(component; to.components)
+        {
+          fillGlobalIdTextObject(component, context);
+        }
+    }
+    foreach(textObject; currentNode.objects)
+      fillGlobalIdTextObject(textObject, context);
+    bool thisIsSection = nodeIsSection(currentNode);
+    if (thisIsSection) context ~= currentNode.objects[0].id ~ "/";
+
+    foreach(child; currentNode.children)
+      {
+        fillGlobalId(child, context);
+      }
+  }
+  void countReferences(Node node)
+  {
+    void countReferencesTextObject(TextObject object)
+    {
+      if (object.name == "ref")
+        {
+          assert(object.components.length == 1 && object.components[0].isPlainText);
+          auto referenced = object.components[0].name;
+          if (referenced !in result.textObjectById)
+            {
+              assert(0, text("Reference to object ", referenced, " which doesn't exist"));
+            }
+          auto referencedObject = result.textObjectById[referenced];
+          result.referencedBy.require(referencedObject, null) ~= result.globalId[object];
+          return;
+        }
+      foreach(component; object.components)
+        {
+          countReferencesTextObject(component);
+        }
+    }
+
+    foreach(object; node.objects)
+      {
+        countReferencesTextObject(object);
+      }
+
+    foreach(child; node.children)
+      {
+        countReferences(child);
+      }
+  }
+  globalizeReferences(result.root, "");
+  fillGlobalId(result.root, "");
+  countReferences(result.root);
+
+  debug void printResult(Node node, int indent)
+  {
+    void printTextObject(TextObject textObject)
+    {
+      write(`[`);
+      write(textObject.name);
+      write("#");
+      write(textObject.id);
+      write("$");
+      write(result.globalId[textObject]);
+      write("] ");
+      if (auto references = textObject in result.referencedBy)
+        {
+          write("<-{");
+          foreach(reference; *references)
+            {
+              write(reference, " ");
+            }
+          write("}");
+        }
+      if (textObject.components.length > 0)
+        write("{");
+      foreach(component; textObject.components)
+        printTextObject(component);
+      if (textObject.components.length > 0)
+        write("} ");
+    }
+    foreach(i; 0 .. indent) write(' ');
+    write("Node: ");
+    foreach(textObject; node.objects)
+      {
+        printTextObject(textObject);
+      }
+    writeln;
+
+    foreach(child; node.children)
+      {
+        printResult(child, indent + 2);
+      }
+  }
+  debug printResult(result.root, 0);
+  return result;
+}
+
+private void checkNode(Node node)
+{
+  foreach(textObject; node.objects)
+    checkTextObject(textObject, cast(int) node.objects.length);
+  foreach(child; node.children)
+    checkNode(child);
+}
+
+private void checkTextObject(TextObject textObject, int noSiblings)
+{
+  if (textObject.isPlainText)
+    {
+      assert(textObject.components is null);
+      assert(textObject.id is null);
+      return;
+    }
+  switch(textObject.name)
+    {
+    case "section":
+      assert(noSiblings == 1);
+      break;
+    case "ref":
+      assert(textObject.components.length == 1 &&
+             textObject.components[0].isPlainText);
+      break;
+    }
+}

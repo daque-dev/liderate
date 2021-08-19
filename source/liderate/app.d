@@ -7,9 +7,7 @@ void main(string[] args)
   import std.stdio;
   import std.array;
   import std.utf;
-  auto parseResult = semanticParse(cast(string) stdin.byLine.join("\n"));
-  writeln(parseResult.root);
-  version(none)
+  version(all)
     {
       import liderate.simplelan: parseString, Node;
       import std.stdio: File;
@@ -33,6 +31,7 @@ void main(string[] args)
               weaveMarkdown(tree, "weaved.md");
               break;
             case "weave-latex":
+              debug writeln("weaving latex");
               weaveLatex(tree, "weaved.tex");
               break;
             default:

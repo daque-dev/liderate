@@ -295,7 +295,7 @@ void process(Command command)
 }
 
 import std.stdio: File;
-void toDotGraph(File file, ParentNode rootNode)
+void toDotGraph(ref File file, ParentNode rootNode)
 {
   import std.variant: visit;
   void printEdges(ParentNode node)
